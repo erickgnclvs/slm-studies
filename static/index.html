@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Small LLM Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .demo-suggestions {
+            background-color: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .demo-suggestions h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: #1890ff;
+        }
+        .suggestion-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .suggestion {
+            background-color: #1890ff;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .suggestion:hover {
+            background-color: #096dd9;
+        }
+        .inference-time {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+            margin-top: 5px;
+            min-height: 100px;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .status.error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <h1>Small LLM Demo - DistilGPT2 Q&A</h1>
+    <p>This demo showcases a DistilGPT2 model optimized with ONNX and dynamic quantization, running on a Mac M1. The model functions as a question-answering assistant.</p>
+    <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #ffc107;">
+        <p><strong>Note:</strong> DistilGPT2 is a small language model (82M parameters) compared to models like GPT-3 (175B) or GPT-4. Responses may be limited in coherence and accuracy. This demo showcases optimization techniques rather than state-of-the-art language capabilities.</p>
+    </div>
+    
+    <div class="container">
+        <h2>Model Status</h2>
+        <button id="checkHealth">Check Health</button>
+        <div id="healthStatus" class="status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Ask a Question</h2>
+        <p>Enter a question or statement below and the AI assistant will respond. The model has been optimized for performance on Mac M1.</p>
+        
+        <div class="demo-suggestions">
+            <h3>Try these questions for best results:</h3>
+            <div class="suggestion-buttons">
+                <button class="suggestion" data-question="What is machine learning?">What is machine learning?</button>
+                <button class="suggestion" data-question="Explain neural networks">Explain neural networks</button>
+                <button class="suggestion" data-question="What is ONNX?">What is ONNX?</button>
+                <button class="suggestion" data-question="How does model quantization work?">How does model quantization work?</button>
+                <button class="suggestion" data-question="What is DistilGPT2?">What is DistilGPT2?</button>
+                <button class="suggestion" data-question="Benefits of model optimization">Benefits of model optimization</button>
+                <button class="suggestion" data-question="Compare CPU vs GPU for inference">Compare CPU vs GPU for inference</button>
+                <button class="suggestion" data-question="What is this demo showing?">What is this demo showing?</button>
+            </div>
+        </div>
+        
+        <textarea id="inputText" placeholder="Ask me anything...">What is machine learning?</textarea>
+        <div style="margin-bottom: 10px;">
+            <label for="maxLength">Response Length: </label>
+            <input type="number" id="maxLength" value="50" min="20" max="200" style="width: 60px;">
+            <span style="font-size: 0.8em; color: #666;">(longer responses may be less coherent)</span>
+        </div>
+        <button id="analyzeText">Ask AI</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('checkHealth').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                const healthStatus = document.getElementById('healthStatus');
+                
+                if (data.status === 'ok') {
+                    healthStatus.className = 'status success';
+                    healthStatus.textContent = `Model is healthy! Type: ${data.model_type}`;
+                } else {
+                    healthStatus.className = 'status error';
+                    healthStatus.textContent = `Error: ${data.message}`;
+                }
+            } catch (error) {
+                const healthStatus = document.getElementById('healthStatus');
+                healthStatus.className = 'status error';
+                healthStatus.textContent = `Error connecting to server: ${error.message}`;
+            }
+        });
+
+        // Add event listeners for suggestion buttons
+        document.querySelectorAll('.suggestion').forEach(button => {
+            button.addEventListener('click', () => {
+                document.getElementById('inputText').value = button.getAttribute('data-question');
+                // Trigger the analyze button
+                document.getElementById('analyzeText').click();
+            });
+        });
+        
+        document.getElementById('analyzeText').addEventListener('click', async () => {
+            const inputText = document.getElementById('inputText').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!inputText.trim()) {
+                resultDiv.innerHTML = '<p class="error">Please enter some text to analyze.</p>';
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = '<p>Analyzing...</p>';
+                
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: inputText,
+                        max_length: parseInt(document.getElementById('maxLength').value) || 50,
+                        demo_mode: true  // Enable demo mode for better responses
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    if (data.prediction) {
+                        // For sequence classification
+                        resultDiv.innerHTML = `
+                            <h3>Sentiment Analysis Result:</h3>
+                            <p><strong>Sentiment:</strong> ${data.prediction.label}</p>
+                            <p><strong>Confidence:</strong> ${(data.prediction.confidence * 100).toFixed(2)}%</p>
+                            <p><em>Note: Higher confidence means the model is more certain about its prediction. Values close to 50% indicate uncertainty.</em></p>
+                        `;
+                    } else if (data.generated_text) {
+                        // For text generation
+                        let inferenceTimeHtml = '';
+                        if (data.inference_time) {
+                            inferenceTimeHtml = `<p class="inference-time">Inference time: ${data.inference_time}</p>`;
+                        }
+                        
+                        let sourceLabel = '';
+                        if (data.source === 'optimized_response') {
+                            sourceLabel = '<span style="font-size: 12px; background-color: #52c41a; color: white; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">Optimized</span>';
+                        }
+                        
+                        resultDiv.innerHTML = `
+                            <h3>AI Response: ${sourceLabel}</h3>
+                            <div style="background-color: #f0f7ff; padding: 15px; border-radius: 8px; border-left: 4px solid #0066cc;">
+                                <p>${data.generated_text}</p>
+                                ${inferenceTimeHtml}
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<p class="error">Error: ${data.message}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error connecting to server: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

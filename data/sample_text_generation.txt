@@ -1,0 +1,29 @@
+Small language models are efficient because they require less computational resources while still providing good performance for many tasks.
+
+When optimizing a language model for Mac M1, you should use half-precision (float16) to reduce memory usage and improve performance.
+
+The advantages of deploying AI on edge devices include reduced latency, improved privacy, and lower operational costs.
+
+Quantization is a technique that reduces model size by representing weights with lower precision, such as int8 instead of float32.
+
+MobileBERT is a compressed version of BERT designed specifically for mobile and edge devices with limited resources.
+
+Distillation is the process of training a smaller model (student) to mimic the behavior of a larger model (teacher).
+
+ONNX Runtime provides optimizations for running machine learning models across different hardware platforms.
+
+TinyBERT achieves comparable performance to BERT while being much smaller through parameter reduction and knowledge distillation.
+
+Edge AI refers to running artificial intelligence algorithms locally on a device, rather than in the cloud.
+
+Pruning is a technique that removes less important weights from a neural network to reduce its size.
+
+The Metal Performance Shaders (MPS) framework in macOS allows for GPU acceleration on Apple Silicon chips.
+
+Batch processing improves throughput by processing multiple inputs simultaneously, utilizing hardware more efficiently.
+
+ALBERT reduces model size by factorizing embedding parameters and sharing parameters across layers.
+
+Model compression techniques aim to reduce the size and computational requirements of neural networks while preserving accuracy.
+
+Transformer models can be made more efficient by reducing the number of attention heads and hidden layers.
